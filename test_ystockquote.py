@@ -10,8 +10,6 @@
 #  version 2.1 of the License, or (at your option) any later version.
 #
 #  Requires: Python 2.7/3.3+
-
-
 import unittest
 
 import pep8
@@ -36,32 +34,46 @@ class YStockQuoteTestCase(TestWithScenarios):
         symbol = 'GOOG'
         all_info = ystockquote.get_all(symbol)
         self.assertIsInstance(all_info, dict)
-        pc = all_info['previous_close']
+        pc = all_info[symbol]['previous_close']
         self.assertNotEqual(pc, 'N/A')
         self.assertGreater(float(pc), 0)
 
-    def test_get_historical_prices(self):
-        symbol = 'GOOG'
-        start_date = '2013-01-02'
-        end_date = '2013-01-15'
-        prices = ystockquote.get_historical_prices(
-            symbol, start_date, end_date)
-        self.assertIsInstance(prices, dict)
-        self.assertEqual(len(prices), 10)
-        self.assertEqual(sorted(prices.keys())[0], '2013-01-02')
-        self.assertEqual(sorted(prices.keys())[-1], end_date)
-        self.assertGreater(float(prices[start_date]['Open']), 0.0)
-        self.assertGreater(float(prices[start_date]['High']), 0.0)
-        self.assertGreater(float(prices[start_date]['Low']), 0.0)
-        self.assertGreater(float(prices[start_date]['Close']), 0.0)
-        self.assertGreater(float(prices[start_date]['Volume']), 0.0)
-        self.assertGreater(float(prices[start_date]['Adj Close']), 0.0)
-        self.assertGreater(float(prices[end_date]['Open']), 0.0)
-        self.assertGreater(float(prices[end_date]['High']), 0.0)
-        self.assertGreater(float(prices[end_date]['Low']), 0.0)
-        self.assertGreater(float(prices[end_date]['Close']), 0.0)
-        self.assertGreater(float(prices[end_date]['Volume']), 0.0)
-        self.assertGreater(float(prices[end_date]['Adj Close']), 0.0)
+    def test_get_all_multi(self):
+        symbols = ['GOOG', 'AAPL']
+        all_info = ystockquote.get_all(symbols)
+        self.assertIsInstance(all_info, dict)
+        print all_info
+
+        pc = all_info[symbols[0]]['previous_close']
+        self.assertNotEqual(pc, 'N/A')
+        self.assertGreater(float(pc), 0)
+
+        pc = all_info[symbols[1]]['previous_close']
+        self.assertNotEqual(pc, 'N/A')
+        self.assertGreater(float(pc), 0)
+
+#    def test_get_historical_prices(self):
+#        symbol = 'GOOG'
+#        start_date = '2013-01-02'
+#        end_date = '2013-01-15'
+#        prices = ystockquote.get_historical_prices(
+#            symbol, start_date, end_date)
+#        self.assertIsInstance(prices, dict)
+#        self.assertEqual(len(prices), 10)
+#        self.assertEqual(sorted(prices.keys())[0], '2013-01-02')
+#        self.assertEqual(sorted(prices.keys())[-1], end_date)
+#        self.assertGreater(float(prices[start_date]['Open']), 0.0)
+#        self.assertGreater(float(prices[start_date]['High']), 0.0)
+#        self.assertGreater(float(prices[start_date]['Low']), 0.0)
+#        self.assertGreater(float(prices[start_date]['Close']), 0.0)
+#        self.assertGreater(float(prices[start_date]['Volume']), 0.0)
+#        self.assertGreater(float(prices[start_date]['Adj Close']), 0.0)
+#        self.assertGreater(float(prices[end_date]['Open']), 0.0)
+#        self.assertGreater(float(prices[end_date]['High']), 0.0)
+#        self.assertGreater(float(prices[end_date]['Low']), 0.0)
+#        self.assertGreater(float(prices[end_date]['Close']), 0.0)
+#        self.assertGreater(float(prices[end_date]['Volume']), 0.0)
+#        self.assertGreater(float(prices[end_date]['Adj Close']), 0.0)
 
 
 if __name__ == '__main__':

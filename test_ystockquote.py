@@ -42,7 +42,6 @@ class YStockQuoteTestCase(TestWithScenarios):
         symbols = ['GOOG', 'AAPL']
         all_info = ystockquote.get_all(symbols)
         self.assertIsInstance(all_info, dict)
-        print all_info
 
         pc = all_info[symbols[0]]['previous_close']
         self.assertNotEqual(pc, 'N/A')

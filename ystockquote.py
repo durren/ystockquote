@@ -13,6 +13,10 @@
 #  Requires: Python 2.7/3.3+
 __version__ = '0.3.0'
 
+import csv
+# import pprint
+# PRINTER = pprint.PrettyPrinter()
+
 try:
     # py3
     from urllib.request import Request, urlopen
@@ -123,7 +127,9 @@ def _request(symbols, tag):
     url = '%s?s=%s&f=%s' % (QUOTE_URL, symbols, tag)
     req = Request(url)
     resp = urlopen(req)
-    content = resp.read().decode().strip()
+    csv_content = resp.read().decode().strip()
+    content = [row.strip().split(',') for row in csv_content.split('\n')]
+#    PRINTER.pprint(content)
     return content
 
 
@@ -139,12 +145,12 @@ def get_all(symbols):
     tags = [SPECIAL_TAGS[name] for name in names_ordered]
     ids = ''.join(tags)
     symbol_data = _request(symbols, ids)
-    symbol_data = symbol_data.split(',')
     symbol_dict = {}
-    for symbol in symbols:
+    for symbol_index, symbol in enumerate(symbols):
         symbol_dict[symbol] = {}
         for index, name in enumerate(names_ordered):
-            symbol_dict[symbol][name] = symbol_data[index]
+            symbol_dict[symbol][name] = symbol_data[symbol_index][index]
+#    PRINTER.pprint(symbol_dict)
     return symbol_dict
 
 

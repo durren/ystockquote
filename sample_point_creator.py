@@ -49,9 +49,9 @@ get_more = True
 while get_more:
 #    sock = socket.socket()
 #    sock.connect((DEFAULT_HOST, DEFAULT_PORT))
-    prices = ystockquote.get_special_tag(SYMBOLS, 'l1')
-    for index, symbol in enumerate(SYMBOLS):
-        price = prices[index][0]
+    prices = ystockquote.get_tag(SYMBOLS, 'l1')
+    for symbol in SYMBOLS:
+        price = prices[symbol][0]
         symbol = symbol.replace('^', '')
         line = 'stock.price %s host=%s' % (price, symbol)
         print(line)

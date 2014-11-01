@@ -1,21 +1,19 @@
-#
-#  ystockquote : Retrieve stock quote data from Yahoo Finance
-#
-#  Copyright (c) 2007,2008,2013 Corey Goldberg (cgoldberg@gmail.com)
-#
-#  license: GNU LGPL
-#
-#  This library is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU Lesser General Public
-#  License as published by the Free Software Foundation; either
-#  version 2.1 of the License, or (at your option) any later version.
-#
-#  Requires: Python 2.7/3.3+
+"""ystockquote : Retrieve stock quote data from Yahoo Finance
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2.1 of the License, or (at your option) any later version.
+
+license: GNU LGPL
+
+Requires: Python 2.7/3.3+
+"""
+__author__ = 'Corey Goldberg (cgoldberg@gmail.com)'
+__copyright__ = 'Copyright (c) 2007, 2008, 2013 Corey Goldberg'
 __version__ = '0.3.0'
 
 import csv
-# import pprint
-# PRINTER = pprint.PrettyPrinter()
 
 try:
     # py3
@@ -122,15 +120,19 @@ def _request(symbols, tag):
         symbols: Stock symbol or, confusingly, list of stock symbols.
         tag: Special tag or, confusingly, special tag combination.
     """
-    if not isinstance(symbols, str):
-        symbols = '+'.join(symbols)
-    url = '%s?s=%s&f=%s' % (QUOTE_URL, symbols, tag)
+    if isinstance(symbols, str):
+        symbols = [symbols]
+    symbol_string = '+'.join(symbols)
+    url = '%s?s=%s&f=%s' % (QUOTE_URL, symbol_string, tag)
     req = Request(url)
     resp = urlopen(req)
     csv_content = resp.read().decode().strip()
-    content = [row.strip().split(',') for row in csv_content.split('\n')]
-#    PRINTER.pprint(content)
-    return content
+    csv_reader = csv.reader(csv_content.split('\n'), delimiter=',')
+    content = [row for row in csv_reader]
+    return_dict = {}
+    for index, symbol in enumerate(symbols):
+        return_dict[symbol] = content[index]
+    return return_dict
 
 
 def get_all(symbols):
@@ -141,25 +143,30 @@ def get_all(symbols):
     """
     if isinstance(symbols, str):
         symbols = [symbols]
-    names_ordered = SPECIAL_TAGS.keys()
-    tags = [SPECIAL_TAGS[name] for name in names_ordered]
-    ids = ''.join(tags)
-    symbol_data = _request(symbols, ids)
+    tag_names_ordered = SPECIAL_TAGS.keys()
+    tags = [SPECIAL_TAGS[tag_name] for tag_name in tag_names_ordered]
+    tag_string = ''.join(tags)
+    symbol_data = _request(symbols, tag_string)
     symbol_dict = {}
-    for symbol_index, symbol in enumerate(symbols):
+    for symbol in symbols:
         symbol_dict[symbol] = {}
-        for index, name in enumerate(names_ordered):
-            symbol_dict[symbol][name] = symbol_data[symbol_index][index]
-#    PRINTER.pprint(symbol_dict)
+        for index, tag_name in enumerate(tag_names_ordered):
+            symbol_dict[symbol][tag_name] = symbol_data[symbol][index]
     return symbol_dict
 
 
-def get_special_tag(symbols, tag):
+def get_tag(symbols, tag):
     """
     Args:
         symbols: Stock symbol or, confusingly, list of stock symbols.
         tag: Special tag name, special tag, or, confusingly, special tag
-            combination.
+        combination.  Examples:
+            'trade_date' # special tag name
+            'd2'         # special tag
+            'nd1d2'      # special tag combination
+
+    Returns:
+        Dictionary of symbols with list of tag values requested.
     """
     if tag in SPECIAL_TAGS:
         tag = SPECIAL_TAGS[tag]
@@ -167,17 +174,20 @@ def get_special_tag(symbols, tag):
 
 
 def get_historical_prices(symbol, start_date, end_date):
-    """
+    """Get historical prices for the given ticker symbol.
+
     TODO: The TABLE_URL no longer appears to be valid (returns 404).
         This function will not work until it, or an alternate, is
         working.
 
-    Get historical prices for the given ticker symbol.
-    Date format is 'YYYY-MM-DD'
+    Args:
+        symbol: Stock symbol (just one).
+        start_date: Date format is 'YYYY-MM-DD'
+        end_date: Date format is 'YYYY-MM-DD'
 
     Returns:
-        A nested dictionary (dict of dicts).
-        outer dict keys are dates ('YYYY-MM-DD')
+        Nested dictionary (dict of dicts); outer keys are dates in
+        'YYYY-MM-DD' format.
     """
     params = urlencode({
         's': symbol,

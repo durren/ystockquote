@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+"""Sample test point creator.
+"""
+__copyright__ = 'Copyright (c) 2014 Wavefront Inc.'
+__version__ = '0.1.0'
 
 import socket
 import sys

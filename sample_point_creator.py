@@ -17,6 +17,7 @@ DEFAULT_HOST = '127.0.0.1'
 DEFAULT_PORT = 2878
 DEFAULT_DELAY = 10 #seconds
 DEFAULT_COUNT = -1
+DEFAULT_ERRORS = 10
 
 SYMBOLS = [
         'AAPL',
@@ -67,6 +68,8 @@ def parse_args():
             help='Port on host.')
     parser.add_argument('-d', '--delay', default=DEFAULT_DELAY, type=int,
             help='Delay between queries, in seconds.')
+    parser.add_argument('-e', '--error_max', default=DEFAULT_ERRORS, type=int,
+            help='Maximum number of socket errors allowed before quitting.')
     parser.add_argument('-c', '--count', default=DEFAULT_COUNT,
             type=int, help='Number of iterations; negative for infinite.')
     parser.add_argument('-S', '--send', action='store_true',
@@ -79,31 +82,38 @@ def main():
     """Main script.
     """
     count = ARGS.count
-    while count != 0:
+    errors = 0
+    while count != 0 and errors < ARGS.error_max:
         if ARGS.send:
             sock = socket.socket()
             sock.connect((ARGS.host, ARGS.port))
 
         prices = ystockquote.get_tag(SYMBOLS, 'l1')
-        for symbol in SYMBOLS:
-            price = prices[symbol][0]
-            symbol = symbol.replace('^', '')
-            line = 'stock.price %s host=%s' % (price, symbol)
+        if prices:
+            for symbol in SYMBOLS:
+                price = prices[symbol][0]
+                symbol = symbol.replace('^', '')
+                line = 'stock.price %s host=%s' % (price, symbol)
 
-            print(line)
-            if ARGS.send:
-                sock.sendall('%s\n' % line)
+                print(line)
+                if ARGS.send:
+                    sock.sendall('%s\n' % line)
 
-        if count > 0:
-            count -= 1
+            if count > 0:
+                count -= 1
+            print('---- %d left to go ----' % count)
+        else:
+            errors += 1
+            print('---- Retrying (%d errors) ----' % errors)
 
-        print('---- %d left to go (of %d) ----' % (count, ARGS.count))
         if ARGS.send:
             sock.close()
 
         time.sleep(ARGS.delay)
 
+    return errors
+
 
 if __name__ == '__main__':
     ARGS = parse_args()
-    main()
+    sys.exit(main())

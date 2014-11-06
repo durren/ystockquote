@@ -115,7 +115,29 @@ SPECIAL_TAGS = {
     }
 
 
-def _request(symbols, tag_string):
+def _request(url):
+    """Makes the Yahoo! info request.
+
+    Args:
+        url: Yahoo! URL that returns CSV data.
+
+    Returns:
+        List of lists (converted CSV output), or empty list if there
+        was an error with the request.
+    """
+    try:
+        req = Request(url)
+        resp = urlopen(req)
+    except socket.error as err:
+        print('_request: socket.error')
+        return []
+    csv_content = resp.read().decode().strip()
+    csv_reader = csv.reader(csv_content.splitlines(), delimiter=',')
+    content = [row for row in csv_reader]
+    return content
+
+
+def _request_symbols(symbols, tag_string):
     """Makes the stock info request.
 
     Args:
@@ -131,21 +153,18 @@ def _request(symbols, tag_string):
         {
             symbol1: [value1, .., valueN],
             ..
-            symbolN: [value1, .., valueN],
+            symbolM: [value1, .., valueN],
             }
     """
     if isinstance(symbols, str):
         symbols = [symbols]
     symbol_string = '+'.join(symbols)
     url = '%s?s=%s&f=%s' % (QUOTE_URL, symbol_string, tag_string)
-    req = Request(url)
-    resp = urlopen(req)
-    csv_content = resp.read().decode().strip()
-    csv_reader = csv.reader(csv_content.split('\n'), delimiter=',')
-    content = [row for row in csv_reader]
+    content = _request(url)
     return_dict = {}
-    for index, symbol in enumerate(symbols):
-        return_dict[symbol] = content[index]
+    if content:
+        for index, symbol in enumerate(symbols):
+            return_dict[symbol] = content[index]
     return return_dict
 
 
@@ -185,7 +204,8 @@ def get_tag(symbols, tag_string):
     """
     if tag_string in SPECIAL_TAGS:
         tag_string = SPECIAL_TAGS[tag_string]
-    return _request(symbols, tag_string)
+    return_dict = _request_symbols(symbols, tag_string)
+    return return_dict
 
 
 def get_tags(symbols, tags):
@@ -212,7 +232,7 @@ def get_tags(symbols, tags):
                 keyN: valueN,
                 },
             ..
-            symbolN: {
+            symbolM: {
                 key1: value1,
                 ..
                 keyN: valueN,
@@ -227,24 +247,27 @@ def get_tags(symbols, tags):
     tag_names = []
     for tag in tags:
         if tag in SPECIAL_TAGS:
+            # tag is actually a tag name; get the tag from value
             tag_names.append(tag)
             tag_parts.append(SPECIAL_TAGS[tag])
         elif tag in SPECIAL_TAGS.values():
+            # tag is really a tag; get the name from key
             for tag_name, tag_abbr in SPECIAL_TAGS.items():
                 if tag == tag_abbr:
                     tag_names.append(tag_name)
                     tag_parts.append(tag_abbr)
+                    break
         else:
-            # Handle unknown tags; pass value as tag
+            # Unknown tag; pass tag with "unknown" as name
             tag_names.append('unknown')
             tag_parts.append(tag)
     tag_string = ''.join(tag_parts)
-    symbol_data = _request(symbols, tag_string)
+    symbol_data = _request_symbols(symbols, tag_string)
     symbol_dict = {}
     for symbol in symbols:
         symbol_dict[symbol] = {}
-        for index, tag_name in enumerate(tag_names):
-            symbol_dict[symbol][tag_name] = symbol_data[symbol][index]
+        for tag_index, tag_name in enumerate(tag_names):
+            symbol_dict[symbol][tag_name] = symbol_data[symbol][tag_index]
     return symbol_dict
 
 
@@ -264,33 +287,27 @@ def get_historical_prices(symbol, start_date, end_date):
         Nested dictionary (dict of dicts); outer keys are dates in
         'YYYY-MM-DD' format.
     """
+    start_year, start_month, start_day = start_date.split('-')
+    end_year, end_month, end_day = end_date.split('-')
     params = urlencode({
         's': symbol,
-        'a': int(start_date[5:7]) - 1,
-        'b': int(start_date[8:10]),
-        'c': int(start_date[0:4]),
-        'd': int(end_date[5:7]) - 1,
-        'e': int(end_date[8:10]),
-        'f': int(end_date[0:4]),
+        'a': int(start_month) - 1,
+        'b': int(start_day),
+        'c': int(start_year),
+        'd': int(end_month) - 1,
+        'e': int(end_day),
+        'f': int(end_year),
         'g': 'd',
         'ignore': '.csv',
         })
     url = '%s?%s' % (TABLE_URL, params)
-    req = Request(url)
-    resp = urlopen(req)
-    content = str(resp.read().decode('utf-8').strip())
-    daily_data = content.splitlines()
-    hist_dict = dict()
-    keys = daily_data[0].split(',')
-    for day in daily_data[1:]:
-        day_data = day.split(',')
-        date = day_data[0]
-        hist_dict[date] = {
-            keys[1]: day_data[1],
-            keys[2]: day_data[2],
-            keys[3]: day_data[3],
-            keys[4]: day_data[4],
-            keys[5]: day_data[5],
-            keys[6]: day_data[6],
-            }
+    content = _request(url)
+    hist_keys = content[0]
+    days_data = content[1:]
+    hist_dict = {}
+    for day_data in days_data:
+        the_date = day_data[0]
+        hist_dict[the_date] = {}
+        for key_index, day_value in enumerate(day_data[1:]):
+            hist_dict[the_date][hist_keys[key_index + 1]] = day_value
     return hist_dict

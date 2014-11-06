@@ -78,10 +78,10 @@ def parse_args():
 def main():
     """Main script.
     """
+    sock = socket.socket()
     count = ARGS.count
     while count != 0:
         if ARGS.send:
-            sock = socket.socket()
             sock.connect((ARGS.host, ARGS.port))
 
         prices = ystockquote.get_tag(SYMBOLS, 'l1')
@@ -90,18 +90,16 @@ def main():
             symbol = symbol.replace('^', '')
             line = 'stock.price %s host=%s' % (price, symbol)
 
+            print(line)
             if ARGS.send:
                 sock.sendall('%s\n' % line)
-            else:
-                print(line)
 
         if count > 0:
             count -= 1
 
+        print('---- %d left to go (of %d) ----' % (count, ARGS.count))
         if ARGS.send:
             sock.close()
-        else:
-            print('---- %d left to go (of %d) ----' % (count, ARGS.count))
 
         time.sleep(ARGS.delay)
 

@@ -93,7 +93,7 @@ def main():
             for symbol in SYMBOLS:
                 price = prices[symbol][0]
                 symbol = symbol.replace('^', '')
-                line = 'stock.price %s host=%s' % (price, symbol)
+                line = "stock.price %s host='%s'" % (price, symbol)
 
                 print(line)
                 if ARGS.send:
